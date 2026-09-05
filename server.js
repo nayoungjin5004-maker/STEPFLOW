@@ -18,6 +18,7 @@ const VAPID_FILE = path.join(DATA_DIR, 'stepflow-vapid.json');
 const VALID_USERS = {
   hy: { id: 'hy', role: 'student', displayName: 'hy' },
   yjw: { id: 'yjw', role: 'student', displayName: 'yjw' },
+  nyj: { id: 'nyj', role: 'student', displayName: 'nyj' },
   nyj5004: { id: 'nyj5004', role: 'admin', displayName: '관리자' },
 };
 
@@ -42,6 +43,7 @@ function initialState() {
     users: {
       hy: { ...VALID_USERS.hy, data: initialStudentData() },
       yjw: { ...VALID_USERS.yjw, data: initialStudentData() },
+      nyj: { ...VALID_USERS.nyj, data: initialStudentData() },
       nyj5004: { ...VALID_USERS.nyj5004 },
     },
     globalEvents: [],
@@ -76,7 +78,7 @@ function loadState() {
     st.adminNotifications = Array.isArray(parsed.adminNotifications) ? parsed.adminNotifications : [];
     st.pushSubscriptions = parsed.pushSubscriptions && typeof parsed.pushSubscriptions === 'object' ? parsed.pushSubscriptions : { nyj5004: [] };
     if (!Array.isArray(st.pushSubscriptions.nyj5004)) st.pushSubscriptions.nyj5004 = [];
-    for (const id of ['hy', 'yjw']) {
+    for (const id of ['hy', 'yjw', 'nyj']) {
       st.users[id] = { ...VALID_USERS[id], data: normalizeStudentData(parsed.users?.[id]?.data) };
     }
     st.users.nyj5004 = { ...VALID_USERS.nyj5004 };
@@ -284,7 +286,7 @@ function attendanceSummary(data, date=todayKST()) {
 }
 function adminOverview() {
   const date = todayKST();
-  return ['hy','yjw'].map(id => {
+  return ['hy','yjw','nyj'].map(id => {
     const u = state.users[id], d = u.data, a = attendanceSummary(d,date);
     return {
       id, displayName: u.displayName,
@@ -422,20 +424,20 @@ async function handleApi(req,res,url) {
   }
   if (p === '/api/admin/student' && req.method === 'GET') {
     const u=requireRole(req,res,'admin'); if(!u)return; const id=safeStr(url.searchParams.get('id'),40);
-    if(!['hy','yjw'].includes(id))return json(res,404,{error:'not_found'}); return json(res,200,studentPayload(id));
+    if(!['hy','yjw','nyj'].includes(id))return json(res,404,{error:'not_found'}); return json(res,200,studentPayload(id));
   }
   if (p === '/api/admin/event' && req.method === 'POST') {
     const u=requireRole(req,res,'admin'); if(!u)return; const b=await readBody(req), target=safeStr(b.target,40), ev=sanitizeEvent(b.event,u.id);
     if(!ev.title||!ev.startDate)return json(res,400,{error:'missing_fields'});
     if(target==='all') state.globalEvents.push(ev);
-    else if(['hy','yjw'].includes(target)) state.users[target].data.events.push(ev);
+    else if(['hy','yjw','nyj'].includes(target)) state.users[target].data.events.push(ev);
     else return json(res,400,{error:'bad_target'});
     saveState(); return json(res,200,{ok:true});
   }
   if (p.startsWith('/api/admin/event/') && req.method === 'DELETE') {
     const u=requireRole(req,res,'admin'); if(!u)return; const id=decodeURIComponent(p.slice('/api/admin/event/'.length)), target=safeStr(url.searchParams.get('target'),40);
     if(target==='all') state.globalEvents=state.globalEvents.filter(e=>e.id!==id);
-    else if(['hy','yjw'].includes(target)) state.users[target].data.events=state.users[target].data.events.filter(e=>e.id!==id);
+    else if(['hy','yjw','nyj'].includes(target)) state.users[target].data.events=state.users[target].data.events.filter(e=>e.id!==id);
     else return json(res,400,{error:'bad_target'});
     saveState(); return json(res,200,{ok:true});
   }
