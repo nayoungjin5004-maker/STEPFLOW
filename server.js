@@ -39,7 +39,7 @@ function initialStudentData() {
 
 function initialState() {
   return {
-    schemaVersion: 3,
+    schemaVersion: 5,
     users: {
       hy: { ...VALID_USERS.hy, data: initialStudentData() },
       yjw: { ...VALID_USERS.yjw, data: initialStudentData() },
@@ -73,7 +73,7 @@ function loadState() {
     if (!fs.existsSync(STATE_FILE)) return initialState();
     const parsed = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
     const st = initialState();
-    st.schemaVersion = 3;
+    st.schemaVersion = 5;
     st.globalEvents = Array.isArray(parsed.globalEvents) ? parsed.globalEvents : [];
     st.adminNotifications = Array.isArray(parsed.adminNotifications) ? parsed.adminNotifications : [];
     st.pushSubscriptions = parsed.pushSubscriptions && typeof parsed.pushSubscriptions === 'object' ? parsed.pushSubscriptions : { nyj5004: [] };
@@ -210,6 +210,8 @@ function sanitizePlans(input) {
       title: safeStr(x.title, 160),
       parentId: safeStr(x.parentId, 80),
       parent: safeStr(x.parent, 160),
+      parentLevel: ['long','month','week'].includes(x.parentLevel) ? x.parentLevel : '',
+      allocationPct: Number.isFinite(Number(x.allocationPct)) ? Math.max(0, Math.min(100, Number(x.allocationPct))) : undefined,
       startDate: isoDate(x.startDate),
       endDate: isoDate(x.endDate),
       date: isoDate(x.date),
